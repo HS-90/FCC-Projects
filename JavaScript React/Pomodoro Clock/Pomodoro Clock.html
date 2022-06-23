@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>25 + 5 Pomodoro Clock</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Economica:ital,wght@0,400;0,700;1,400&display=swap');
+
+
+        @import url('https://fonts.googleapis.com/css2?family=Londrina+Solid:wght@900&display=swap');
+
+
+        body{
+            background-color: #b6bf63;
+            font-family: 'Londrina Solid', cursive;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .period{
+            font-size: 25px
+        }
+
+        .time{
+            font-family: 'Economica', sans-serif;
+            font-size: 29px;
+        }
+
+        #time-left{
+            font-family: "Economica", sans-serif;
+            font-size: 35px;
+            background-color: black;
+            color: #b6bf63;
+        }
+
+        button{
+            font-size: 25px;
+        }
+
+        #timer-label{
+            color: #3456eb;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- html element to render React Component -->
+    <center>
+        <h1>25 + 5 Clock</h1>
+        <div id=clock-frame></div>
+    </center>
+
+    <!-- import babel script -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- import map script -->
+    <script type= "importmap">
+        {
+            "imports": {
+                "react": "https://cdn.skypack.dev/react@17.0.1",
+                "react-dom": "https://cdn.skypack.dev/react-dom@17.0.1",
+                "floor": "https://cdn.skypack.dev/floor@0.0.0"
+            }
+        }
+    </script>
+
+
+    <script type = "text/babel" data-type="module">
+        import * as React from 'react';
+        import * as ReactDOM from 'react-dom';
+        import floor from 'floor';
+        
+        function Format_time(time){
+            var min = floor(time / 60);
+            var secs = time % 60;
+   
+            //format to always show two digits mm:ss
+            var min = min.toLocaleString('en-US', {
+                minimumIntegerDigits: 2,
+                useGrouping: false
+            });
+            
+            var secs = secs.toLocaleString('en-US', {
+                minimumIntegerDigits: 2,
+                useGrouping: false
+            })
+            
+            return min + ':' + secs;
+      
+        };
+
+
+
+        class Clock extends React.Component {
+            constructor(props){
+                super(props);
+                
+                this.loop = undefined;
+                this.state = {
+                    break: 5,
+                    session:25,
+                    timeleft:1500,
+                    timerunning: false,
+                    period: "Session"
+                
+                };
+                this.Increment_break = this.Increment_break.bind(this);
+                this.Decrement_break = this.Decrement_break.bind(this);
+                
+                this.Increment_session = this.Increment_session.bind(this);
+                this.Decrement_session = this.Decrement_session.bind(this);
+                this.Reset = this.Reset.bind(this);
+
+                this.Running = this.Running.bind(this);
+
+            }
+        
+            componentWillUnmount() {
+                clearInterval(this.loop);
+            }
+        
+            Increment_break(event){
+            
+                if(this.state.break < 60){
+                    this.setState(prevState => {
+                        return{
+                            break: prevState.break + 1,
+                            timeleft: prevState.period === "Break" ? prevState.timeleft + 60 : prevState.timeleft
+                }})}
+            }
+            
+            Decrement_break(event){
+            
+                if(this.state.break > 1){
+                    this.setState(prevState => {
+                        return{
+                            break: prevState.break - 1,
+                            timeleft: prevState.period === "Break" ? prevState.timeleft - 60 : prevState.timeleft
+                    }})}
+            }
+        
+            Increment_session(event){
+            
+                if(this.state.session < 60){
+                    this.setState(prevState => {
+                        return{
+                            session: prevState.session +1,
+                            timeleft: prevState.timeleft + 60
+                        }})}
+            
+            
+            }
+        
+            Decrement_session(event){
+            
+                if(this.state.session > 1){
+                    this.setState(prevState => {
+                        return{
+                            session: prevState.session - 1,
+                            timeleft: prevState.timeleft - 60
+                        }
+                })}
+            }
+        
+            Reset(){
+            
+                var sound = document.getElementById("beep");
+                
+                sound.pause();
+                sound.currentTime = 0;
+                //if time is running then we need to stop the countdown by clearing loop
+                if(this.state.timerunning === true){
+                    clearInterval(this.loop);
+                }
+                
+                //reset everything to "factory settings"
+                this.setState(prevState => {
+                    return{
+                        break: 5,
+                        session: 25,
+                        timeleft: 1500,
+                        timerunning: false,
+                        period: "Session"
+                    
+                    }
+                })
+            
+            }
+        
+            Running(){
+                
+                //if time is running then stop and clear interval
+                if(this.state.timerunning){
+                    clearInterval(this.loop);
+                    
+                    this.setState(prevState => {
+                        return{
+                            timerunning: false
+                        }
+                    });
+                
+                //if time is not running then start the clock
+                }else {
+                    this.setState(prevState => {
+                        return{
+                            timerunning: true
+                        }
+                    });
+                    
+                    //set up loop or countdown
+                    this.loop = setInterval(() => {
+                    
+                        //if time reaches 0 then play buzzer and switch between break or session
+                        if(this.state.timeleft === 0){
+                        
+                            var sound = document.getElementById("beep");
+                            sound.currentTime=0;
+                            sound.play();
+                            
+                            this.setState(prevState =>{
+                                return{
+                                    period: prevState.period === "Session" ? "Break" : "Session",
+                                    timeleft: prevState.period === "Session" ? prevState.break * 60 : prevState.session * 60
+                                }             
+                            });
+                        } 
+                        
+                        else{
+                            this.setState(prevState => {
+                                return{
+                                    timeleft: prevState.timeleft - 1
+                                }});
+                        };
+                    
+                    }, 1000);
+                }
+            
+            } 
+      
+     
+     
+
+  
+            render(){
+                return(
+                <div>
+                    <div id="break-session">
+                    
+                    <div class="flex-box">
+                        <label id="break-label" class = "period">Break Length</label>
+                        <div>
+                            <button id="break-decrement" onClick= {this.Decrement_break}>-</button>
+                            <span class= "time" id="break-length"> {this.state.break} </span>
+                            <button id="break-increment" value="break" onClick = {this.Increment_break}>+</button>
+                        </div>
+                    
+                        <label class= "period" id="session-label">Session Length</label>
+                        <div>
+                            <button id="session-decrement" onClick = {this.Decrement_session}>-</button>
+                            <span class= "time" id="session-length"> {this.state.session} </span>
+                            <button id="session-increment" onClick = {this.Increment_session}>+</button>
+                        </div>          
+                    </div>
+                    
+
+                    <br/>
+                    <label class= "period"> Current Period: </label> <label class= "period" id="timer-label">{this.state.period}</label><br/>
+                    
+                    <button id="start_stop" onClick ={this.Running}>Play / Pause</button> 
+                    <button id="reset" onClick = {this.Reset}>Reset</button>
+                    <br/><br/>
+                    
+                    <label class="period" id="time-left-label">Time Left:</label><br/>
+                    <div id="time-left">{Format_time(this.state.timeleft)}</div>
+                    
+                    <audio class="beep" id="beep" src="https://sampleswap.org/samples-ghost/INSTRUMENTS%20(SINGLE%20SAMPLES)/Piano%20and%20Epiano/965[kb]rhodes_chord.wav.mp3"></audio>
+                        
+                    </div>
+                    
+                </div>
+                )
+            }
+  
+        }
+
+        ReactDOM.render(<Clock />, document.getElementById("clock-frame"))
+         
+    </script>
+    
+</body>
+</html>
